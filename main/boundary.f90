@@ -228,7 +228,7 @@ contains
         
         ! local variables
         real,dimension(:,:,:),allocatable :: inputdata,extra_data
-        integer :: nx,ny,nz,i
+        integer :: nx,ny,nz,i, input_bottom, model_nlayers, step_towards_top
         logical :: apply_vertical_interpolation
         
         ! the special case is to skip vertical interpolation (pressure and one pass of temperature)
@@ -293,8 +293,16 @@ contains
                 call vinterp(highres, inputdata, &
                              vlut,boundary_only)
             else
-                ! if we aren't interpolating, just copy over the output
-                highres=inputdata(:,:size(highres,2),:)
+                if ((varname==options%pvar).and.(inputdata(1,1,1)<inputdata(1,2,1))) then
+                    ! if we need to flip the vertical coordinate
+                    input_bottom     = size(inputdata,2)
+                    model_nlayers    = size(highres,2)
+                    step_towards_top = -1
+                    highres = inputdata(:, input_bottom:input_bottom-model_nlayers:step_towards_top, :)
+                else
+                    ! if we aren't interpolating, just copy over the output
+                    highres = inputdata(:,:size(highres,2),:)
+                endif
             endif
             deallocate(extra_data)
             deallocate(inputdata)
@@ -891,9 +899,14 @@ contains
         ! vapor pressure, change in height, change in temperature with height and mean temperature
         real,dimension(:),allocatable:: e, dz, dTdz, tmean 
         integer :: nx,ny,nz,i,j
+        logical :: bottom_is_top
+        integer :: lo_top
         nx=size(pressure,1)
         nz=size(pressure,2)
         ny=size(pressure,3)
+        
+        bottom_is_top = (z_lo(1,1,1) > z_lo(1,2,1))
+        lo_top = size(z_lo,2)+1
         
         if (present(lowresT)) then
             !$omp parallel shared(pressure, z_lo,z_hi, lowresT, hiresT) &
@@ -909,7 +922,11 @@ contains
                     ! vapor pressure
 !                     e = qv(:,:,j) * pressure(:,:,j) / (0.62197+qv(:,:,j))
                     ! change in elevation (note reverse direction from "expected" because the formula is an SLP reduction)
-                    dz   = (z_lo(:,i,j) - z_hi(:,i,j))
+                    if (bottom_is_top) then
+                        dz = (z_lo(:,lo_top-i,j) - z_hi(:,i,j))
+                    else
+                        dz = (z_lo(:,i,j) - z_hi(:,i,j))
+                    endif
                     ! lapse rate (not sure if this should be positive or negative)
                     ! dTdz = (loresT(:,:,j) - hiresT(:,:,j)) / dz
                     ! mean temperature between levels
@@ -942,7 +959,11 @@ contains
             !$omp do 
             do j=1,ny
                 do i=1,nz
-                    slp = pressure(:,i,j) / (1 - 2.25577E-5 * z_lo(:,i,j))**5.25588
+                    if (bottom_is_top) then
+                        slp = pressure(:,i,j) / (1 - 2.25577E-5 * z_lo(:,lo_top-i,j))**5.25588
+                    else
+                        slp = pressure(:,i,j) / (1 - 2.25577E-5 * z_lo(:,i,j))**5.25588
+                    endif
                     pressure(:,i,j) = slp * (1 - 2.25577e-5 * z_hi(:,i,j))**5.25588
                 enddo
             enddo
