@@ -123,10 +123,21 @@ contains
                         ! matched within the grid
                         curweights=weights(hi%z(i,k,j),lo%z(i,curpos(1),j),lo%z(i,curpos(2),j))
                     elseif (curpos(1)==-1) then
-                        ! matched below the grid
+                        ! matched below the grid so we must extrapolate downward.
+                        
+                        ! 2019/06/19 jhorak: added downward extrapolation. In cases where ICAR
+                        ! levels existed below the lowest vertical forcing level this code initially
+                        ! used the quantity's value from the lowest forcing level. Now it's extrapolated
+                        ! linerly based on the value in the lowest two forcing levels. This is essentially
+                        ! a copy of the code in vLUT_forcing where the order of the dimensions has been
+                        ! adjusted.
+                        
                         curpos(1)=1
-                        curpos(2)=1
-                        curweights=0.5
+                        curpos(2)=2
+                        ! note that this will be > 1
+                        curweights(1) = (lo%z(i,curpos(2),j)-hi%z(i,k,j)) / (lo%z(i,curpos(2),j)-lo%z(i,curpos(1),j))
+                        ! note that this will be < 0 providing a bilinear extrapolation                        
+                        curweights(2) = 1-curweights(1)
                     elseif (curpos(1)==-2) then
                         ! matched above the grid
                         curpos(1)=lo_nz
