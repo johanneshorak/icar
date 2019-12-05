@@ -941,6 +941,7 @@ contains
         integer, intent(in) :: vsmooth
         integer, intent(in) :: winsz
 
+        logical :: externalN ! flag whether N is read from a field in the forcing dataset
         integer :: nx,nxu, ny,nyv, nz, i,j,k, smoothz
         integer :: uk, vi !store a separate value of i for v and of k for u to we can handle nx+1, ny+1
         integer :: step, dpos, npos, spos, nexts, nextd, nextn
@@ -955,6 +956,20 @@ contains
         nz  = size(domain%u,2)
         nxu = size(domain%u,1)
         nyv = size(domain%v,3)
+
+        ! if NfromForcing = True and nvar is defined then N is to be
+        ! read from the forcing data set instead of calculated by ICAR,
+        ! meaning that externalN = True. If not both conditions are satisfied,
+        ! externalN is False.
+        if (trim(options%nvar)/="") then
+            if (options%lt_options%N_from_forcing) then
+                externalN = .True.
+            else
+                externalN = .False.
+            endif
+        else
+            externalN = .False.
+        endif
 
         if (reverse) then
             u_LUT=>rev_u_LUT
@@ -972,6 +987,7 @@ contains
 
         ! we only need to go through the calculations if N is variable
         if (options%lt_options%variable_N) then
+            if (.NOT. externalN) then
                 ! $omp parallel firstprivate(nx,nxu,ny,nyv,nz, reverse, vsmooth, winsz, using_blocked_flow), default(none), &
                 ! $omp private(i,j,k,step, uk, vi, east, west, north, south, top, bottom, u1d, v1d), &
                 ! $omp private(spos, dpos, npos, nexts,nextd, nextn,n, smoothz, u, v, blocked), &
@@ -991,15 +1007,15 @@ contains
                             bottom = max(1, j - (vsmooth - (top-j)))
         
                             if (.not.reverse) then
-                                domain%nsquared(i,j,k) = calc_stability(domain%th(i,bottom,k), domain%th(i,top,k),  &
-                                                                        domain%pii(i,bottom,k),domain%pii(i,top,k), &
-                                                                        domain%z(i,bottom,k),  domain%z(i,top,k),   &
-                                                                        domain%qv(i,bottom,k), domain%qv(i,top,k),  &
-                                                                        domain%cloud(i,j,k)+domain%ice(i,j,k)       &
-                                                                        +domain%qrain(i,j,k)+domain%qsnow(i,j,k))
-        
-                                domain%nsquared(i,j,k) = max(min_stability, min(max_stability, &
-                                                        domain%nsquared(i,j,k) * nsq_calibration(i,k)))
+                                    domain%nsquared(i,j,k) = calc_stability(domain%th(i,bottom,k), domain%th(i,top,k),  &
+                                                                            domain%pii(i,bottom,k),domain%pii(i,top,k), &
+                                                                            domain%z(i,bottom,k),  domain%z(i,top,k),   &
+                                                                            domain%qv(i,bottom,k), domain%qv(i,top,k),  &
+                                                                            domain%cloud(i,j,k)+domain%ice(i,j,k)       &
+                                                                            +domain%qrain(i,j,k)+domain%qsnow(i,j,k))
+            
+                                    domain%nsquared(i,j,k) = max(min_stability, min(max_stability, &
+                                                            domain%nsquared(i,j,k) * nsq_calibration(i,k)))
                             else
                                 ! Low-res boundary condition variables will be in a different array format.  It should be
                                 ! easy enough to call calc_stability after e.g. transposing z and y dimension, but some
@@ -1029,6 +1045,7 @@ contains
                 end do
                 ! $omp end do
                 ! $omp end parallel
+            endif
         else
                 domain%nsquared = options%lt_options%N_squared
         endif
