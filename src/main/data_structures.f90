@@ -417,8 +417,10 @@ module data_structures
         logical :: boundary_buffer          ! buffer to smooth a bit to cut down on oscillations at the border if FCT is not used
         logical :: flux_corrected_transport ! use Flux Corrected Transport (FCT) to maintain stability and prevent any wild oscllations
         integer :: mpdata_order             ! accuracy order for MP_DATA advection scheme.
-        integer :: bc_top                   ! type of boundary condition to apply to microphysics fields at the model top.
-        integer :: bc_th_top                ! type of boundary condition to apply to potential temperature at the model.
+        integer :: bct_qv                   ! type of boundary condition to apply to water vapor at the model top
+        integer :: bct_th                   ! type of BC to apply to potential temperature at the model top
+        integer :: bct_sushyd               ! type of BC to apply to suspended hydrometeors at the model top (cloud water, cloud ice)
+        integer :: bct_prechyd              ! type of BC to apply to precipitating hydrometeors at the model top (rain, snow and graupel)
     end type adv_options_type
 
 

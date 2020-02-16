@@ -413,12 +413,12 @@ contains
             call check( nf90_put_att(ncid,temp_id,"coordinates","lon lat"))
             varid(11)=temp_id
             
-            call check( nf90_def_var(ncid, "w_int", NF90_REAL, dimids, temp_id), trim(err)//"w_int" )
-            call check( nf90_put_att(ncid,temp_id,"standard_name","upward_air_velocity"))
-            call check( nf90_put_att(ncid,temp_id,"long_name","Vertical wind staggered"))
-            call check( nf90_put_att(ncid,temp_id,"units","m s-1"))
-            call check( nf90_put_att(ncid,temp_id,"coordinates","lon lat"))
-            varid(51)=temp_id
+            !call check( nf90_def_var(ncid, "w_int", NF90_REAL, dimids, temp_id), trim(err)//"w_int" )
+            !call check( nf90_put_att(ncid,temp_id,"standard_name","upward_air_velocity"))
+            !call check( nf90_put_att(ncid,temp_id,"long_name","Vertical wind staggered"))
+            !call check( nf90_put_att(ncid,temp_id,"units","m s-1"))
+            !call check( nf90_put_att(ncid,temp_id,"coordinates","lon lat"))
+            !varid(51)=temp_id
 
             call check( nf90_def_var(ncid, "p", NF90_REAL, dimids, temp_id), trim(err)//"p")
             call check( nf90_put_att(ncid,temp_id,"standard_name","air_pressure"))
@@ -1036,7 +1036,7 @@ contains
             output_shape(2)=output_shape(2)-1
 
             call check( nf90_put_var(ncid, varid(11), reshape(domain%w_real, output_shape, order=zlast), start_three_D),    trim(filename)//":w" )
-            call check( nf90_put_var(ncid, varid(11), reshape(domain%w     , output_shape, order=zlast), start_three_D),    trim(filename)//":w_int" )
+            !call check( nf90_put_var(ncid, varid(11), reshape(domain%w     , output_shape, order=zlast), start_three_D),    trim(filename)//":w_int" )
 
             call check( nf90_put_var(ncid, varid(12), reshape(domain%p,     output_shape, order=zlast), start_three_D),    trim(filename)//":p" )
             call check( nf90_put_var(ncid, varid(13), reshape(domain%th,    output_shape, order=zlast), start_three_D),    trim(filename)//":th" )

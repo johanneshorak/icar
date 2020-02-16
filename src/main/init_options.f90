@@ -1021,19 +1021,21 @@ contains
         logical :: flux_corrected_transport ! use the flux corrected transport option in MPDATA
         integer :: mpdata_order             ! MPDATA order of correction (e.g. 1st=upwind, 2nd=classic, 3rd=better)
         ! jhorak: options to choose the boundary condition used at the model top added.
-        ! option values and the associated boundary condition are:
-        ! 0 ... zero gradient (default behaviour if not set)
-        ! 1 ... constant gradient BC (or adjusted correspondingly if this would lead to a negative value)
-        ! 2 ... zero value 
-        ! 3 ... zero value but on the flux divergence in the topmost vertical layer for downdrafts
-        integer :: bc_top                   ! type of boundary condition to apply to microphysics fields (qv,qc,qi,qr,qs,qg) at the model top
-        integer :: bc_th_top                ! type of boundary condition to apply to potential temperature at the model
-
+        !    0 ... zero gradient (default) on the quantity
+        !    1 ... constant gradient (linear extrapolation) on the quantity
+        !    2 ... zero value on the quantity
+        !    3 ... constant flux (vertical flux gradient is zero)
+        !    4 ... constant flux gradient (d/dz of vertical flux gradient is zero)
+        ! bct_qv .. BC for water vapor (qv)
+        ! bct_th .. BC for potential temperature
+        ! bct_sushyd .. BC for suspended hydrometeors (cloud water, cloud ice)
+        ! bct_prechyd .. BC for precipitating hydrometeors (rain, snow and graupel)
+        integer :: bct_qv, bct_th, bct_sushyd, bct_prechyd   
 
 
 
         ! define the namelist
-        namelist /adv_parameters/ boundary_buffer, flux_corrected_transport, mpdata_order, bc_top, bc_th_top
+        namelist /adv_parameters/ boundary_buffer, flux_corrected_transport, mpdata_order, bct_qv, bct_th, bct_sushyd, bct_prechyd
 
          ! because adv_options could be in a separate file
          if (options%use_adv_options) then
@@ -1047,8 +1049,10 @@ contains
         boundary_buffer = .False.
         flux_corrected_transport = .True.
         mpdata_order = 2
-        bc_top = 0      
-        bc_th_top = 0
+        bct_qv = 0
+        bct_th = 0
+        bct_sushyd = 0
+        bct_prechyd = 0
 
         ! read the namelist options
         if (options%use_adv_options) then
@@ -1061,27 +1065,20 @@ contains
         adv_options%boundary_buffer = boundary_buffer
         adv_options%flux_corrected_transport = flux_corrected_transport
         adv_options%mpdata_order = mpdata_order
-        adv_options%bc_top = bc_top
-        adv_options%bc_th_top = bc_th_top
+        adv_options%bct_qv = bct_qv
+        adv_options%bct_th = bct_th
+        adv_options%bct_sushyd = bct_sushyd
+        adv_options%bct_prechyd = bct_prechyd
+
 
         if (options%debug) then
-                if (adv_options%bc_top > 0) then
+                if ((bct_qv + bct_th + bct_sushyd + bct_prechyd) > 0) then
                         write(*,*) "DEBUG"
-                        write(*,*) "DEBUG experimental boundary condition applied to microphysics fields at model"
-                        if (adv_options%bc_top == 1) then
-                                write(*,*) "DEBUG constant gradient boundary condition for microphysics fields"
-                        endif
-                        if (adv_options%bc_top == 2) then
-                                write(*,*) "DEBUG zero value on inflow, zero-gradient on outflow for microphysics fields"
-                        endif
-                        write(*,*) "DEBUG"
-                endif
-                if (adv_options%bc_th_top > 0) then
-                        write(*,*) "DEBUG"
-                        write(*,*) "DEBUG experimental boundary condition applied at model"
-                        if (adv_options%bc_th_top == 1) then
-                                write(*,*) "DEBUG constant gradient boundary condition for potential temperature"
-                        endif
+                        write(*,*) "DEBUG boundary condition applied to scalar quantities at the model top"
+                        write(*,*) "DEBUG water vapor                : ",bct_qv
+                        write(*,*) "DEBUG potential temperature      : ",bct_th
+                        write(*,*) "DEBUG suspended hydrometeors     : ",bct_sushyd
+                        write(*,*) "DEBUG precipitating hydrometeors : ",bct_prechyd
                         write(*,*) "DEBUG"
                 endif
         endif
